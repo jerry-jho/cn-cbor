@@ -17,16 +17,18 @@
 
 static unsigned char* load_file(const char* filepath, unsigned char **end) {
   struct stat st;
+  int fd;
+  unsigned char * text; 
   if (stat(filepath, &st)==-1) {
     ERROR("can't find file", filepath);
     return 0;
   }
-  int fd=open(filepath, O_RDONLY);
+  fd=open(filepath, O_RDONLY);
   if (fd==-1) {
     ERROR("can't open file", filepath);
     return 0;
   }
-  unsigned char* text=malloc(st.st_size+1); // this is not going to be freed
+  text=malloc(st.st_size+1); // this is not going to be freed
   if (st.st_size!=read(fd, text, st.st_size)) {
     ERROR("can't read file", filepath);
     close(fd);
@@ -39,12 +41,12 @@ static unsigned char* load_file(const char* filepath, unsigned char **end) {
 }
 
 static void dump(const cn_cbor* cb, char* out, char** end, int indent) {
-  if (!cb)
-    goto done;
+
   int i;
   cn_cbor* cp;
   char finchar = ')';           /* most likely */
-
+  if (!cb)
+    goto done;
 #define CPY(s, l) memcpy(out, s, l); out += l;
 #define OUT(s) CPY(s, sizeof(s)-1)
 #define PRF(f, a) out += sprintf(out, f, a)
@@ -111,11 +113,12 @@ static void cn_cbor_decode_test(const unsigned char *buf, int len) {
 
 int main(void) {
   char buf[100000];
-  unsigned char *end;
+  unsigned char *end = NULL;
   char *bufend;
   unsigned char *s = load_file("cases.cbor", &end);
+  cn_cbor *cb;
   printf("%zd\n", end-s);
-  cn_cbor *cb = cn_cbor_decode(s, end-s CBOR_CONTEXT_PARAM, 0);
+  cb = cn_cbor_decode(s, end-s CBOR_CONTEXT_PARAM, 0);
   if (cb) {
     dump(cb, buf, &bufend, 0);
     *bufend = 0;
@@ -130,7 +133,7 @@ int main(void) {
   cn_cbor_decode_test((const unsigned char*)"\x1c", 1);    /* reserved ai */
   cn_cbor_decode_test((const unsigned char*)"\xbf\x00\xff", 3);    /* odd size indef map */
   cn_cbor_decode_test((const unsigned char*)"\x7f\x40\xff", 3);    /* wrong nesting in indef string */
-  system("leaks test");
+  return system("leaks test");
 }
 
 /* cn-cbor.c:112:    CN_CBOR_FAIL("out of memory"); */
